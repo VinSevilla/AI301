@@ -15,8 +15,7 @@ label is not graded.
 
 **GitHub username**
 
-[Your GitHub username, exactly as it appears on your profile — no `@`, no profile URL. Your
-comments upstream are identified by this name.]
+VinSevilla
 
 ---
 
@@ -24,16 +23,75 @@ comments upstream are identified by this name.]
 
 **Claim comment**
 
-[Link to the comment where you claimed the issue. Use the comment's own permalink, not the
-issue page on its own. **Then paste the text of that comment underneath the link** — the
-pasted text is what this field is graded on, so copy across what you actually posted.]
+https://github.com/codepath/pathreview-ai301-fa26-s1/issues/73#issuecomment-5874933341
+
+Hi, I'd like to take this one as my first contribution. I'll compare README.md,
+.env.example, and core/config.py to confirm exactly where the two docs disagree
+on OPENROUTER_API_KEY and the LLM_PROVIDER options, and report back with what I
+find before proposing the fix.
 
 **Reproduction comment**
 
-[Link to the comment where you posted your reproduction. It must record the environment
-(OS, relevant versions, code state), steps a stranger could follow, and what you observed.
-**Then paste the text of that comment underneath the link** — the pasted text is what this
-field is graded on, so copy across what you actually posted.]
+https://github.com/codepath/pathreview-ai301-fa26-s1/issues/73#issuecomment-5875444891
+
+### Environment
+
+macOS (Darwin 24.6.0), fork `VinSevilla/pathreview-ai301-fa26-s1` at commit
+`f89c06f` (`main`). This is a static docs/config comparison, not a version- or
+platform-specific runtime bug, so no app boot is required to confirm it — the
+same grep below reproduces identically on any OS with the repo checked out.
+
+### Reproduction Steps
+
+```
+grep -n "OPENROUTER_API_KEY\|OPENAI_API_KEY\|LLM_PROVIDER" README.md docs/SETUP.md .env.example core/config.py
+```
+
+Output:
+
+```
+README.md:24:# Configure environment (add your OPENROUTER_API_KEY to .env)
+.env.example:18:LLM_PROVIDER=mock
+.env.example:19:OPENAI_API_KEY=sk-your-key-here
+docs/SETUP.md:47:# Edit .env and set your OPENROUTER_API_KEY (required for AI features)
+```
+
+`core/config.py` doesn't use the uppercase env-var spelling directly (pydantic
+lowercases field names), so a second grep confirms what the app itself actually
+supports:
+
+```
+grep -n "openrouter_api_key\|openai_api_key\|llm_provider" core/config.py
+```
+
+```
+18:    llm_provider: str = Field(default="mock")
+19:    openai_api_key: str = Field(default="")
+20:    openrouter_api_key: str = Field(default="")
+```
+
+### Actual behavior
+
+Both `README.md` and `docs/SETUP.md` instruct the reader to set
+`OPENROUTER_API_KEY` in `.env`. `.env.example` — the file a new contributor
+actually copies via `cp .env.example .env` — only defines `LLM_PROVIDER` and
+`OPENAI_API_KEY`; there's no `OPENROUTER_API_KEY` line to fill in. `core/config.py`
+confirms the app does define an `openrouter_api_key` settings field, so this
+isn't a stale reference to a removed option — it's a real gap in the env
+template relative to what the app supports.
+
+### Analysis
+
+This confirms the issue as filed: README and `.env.example` disagree on which
+key name to set, and `.env.example` is incomplete relative to what
+`core/config.py` actually supports.
+
+I didn't attempt to boot the full app for this — I hit two unrelated
+environment failures partway through `make setup`/`make run` (ChromaDB 0.4.22
+is incompatible with NumPy 2.0, and `libcst` needs a Rust toolchain to build on
+Python 3.13 instead of the documented 3.11) — but neither is needed to confirm
+this issue, since the disagreement is fully visible in the files themselves and
+rerunnable with the grep above on a fresh checkout.
 
 ## Eval iterations
 
@@ -42,28 +100,47 @@ fields.
 
 **Run history**
 
-[The agreement score of each run you did, in order. A single run is a complete answer if
-only one run occurred. **The last score in your list must match the agreement line in the
-`eval-run.txt` you committed** — that file is the record of your final run.]
+Final full run (committed as `eval-run.txt`): `agreement: 20/20 scored items (bar: 18/20:
+PASS)`. Earlier iteration passes happened in a prior session; their intermediate scores
+weren't retained, so this is the run I'm recording.
 
 **Package analysis**
 
-[Pick one scored package (`pkg-01` through `pkg-20` — the four `calib-` packages are never
-scored). Name it by id, say what your rubric decided and what the gold label said, and
-explain why your rubric read it that way.]
+Package: `pkg-20` (`ghostty-org/ghostty#13604`, the `disclosure` category). Gold label:
+`reject` ("ghostty's stated AI policy requires disclosing all AI usage and the comments do
+not disclose"). My rubric's verdict: `reject`, failed on `conventions-respected`. The repro
+report itself is excellent — real environment (Fedora 42, GTK/Wayland), an exact repeatable
+trigger (`theme = Kitty Default` vs a conditional pair), and matching output artifacts for
+both the broken and control case. But the repo's `AI_POLICY.md` requires disclosing any AI
+assistance, and neither the claim nor the report comment discloses it. My `Conventions
+respected` check reads the repo-facts block's policy against the comment text regardless of
+how strong the technical proof is, so it fails the package on that basis alone — matching
+the gold label exactly.
 
 **Check rationale**
 
-[Quote one check from the `rubric.md` you uploaded to `tools/repro-check/`, exactly as it reads now.
-Then say why it reads that way — what you revised to get there, or what you rejected in
-favour of it.]
+`Conventions respected`, as currently written in `rubric.md`: "If the repo's policy requires
+disclosing AI assistance, the comment discloses it; silence on a repo that requires
+disclosure fails this check. If the policy states other comment-specific rules (e.g.
+own-words requirement), the comment follows them. The intake bug-report template's fields
+(title, duplicate search, etc.) are for filing a new issue and are not required of a
+reproduction comment on an already-open one."
+
+It reads this way because `pkg-20` is otherwise a flawless reproduction — every proof-quality
+check (environment, steps, behavior, honesty) would pass it — and a rubric without a
+conventions check would wrongly accept it. The check is written to fail only on the
+disclosure silence itself, not on the intake template's fields (title, duplicate search),
+since those describe filing a new issue, not commenting on one already open — an earlier
+draft that didn't carve that out risked failing reproduction comments for not following a
+template they were never answering.
 
 **Trade-offs**
 
-[Every check gives something up. Any one of these is a complete answer: a package whose
-result it changes, a canary you re-ran with `--only`, a case you accept it will miss, or a
-stated reason nothing changed elsewhere. "Nothing changed, and here is how I know" earns
-the point in full when the reason follows.]
+Nothing changed on the confirming run — all 20 scored packages agreed, including the
+single-item `disclosure` category (`pkg-20`), which is exactly the category the course flags
+as the one "a rubric with no conventions check cannot buy back on volume." I know the floor
+holds because the run's category line reads `disclosure 1/1`, not because I assume the check
+generalizes.
 
 ---
 
