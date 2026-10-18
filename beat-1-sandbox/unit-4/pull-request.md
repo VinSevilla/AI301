@@ -15,15 +15,11 @@ label is not graded.
 
 **Pull request**
 
-[Link to the pull request you opened. It must be the pull request's own page on the Path
-Review repo, not your fork's branch page.]
+https://github.com/codepath/pathreview-ai301-fa26-s1/pull/223
 
 **Branch**
 
-[The name of the branch the pull request comes from, exactly as it appears in your fork.
-The naming shape is a type prefix, then the issue number, then a short description. **The
-issue number in the branch name must be the number of the issue the pull request fixes** —
-a name carrying any other number does not satisfy this field.]
+fix/73-openrouter-env-example
 
 ## Eval iterations
 
@@ -32,28 +28,19 @@ fields.
 
 **Run history**
 
-[The agreement score of each run you did, in order. A single run is a complete answer if
-only one run occurred. **The last score in your list must match the agreement line in the
-`eval-run.txt` you committed** — that file is the record of your final run.]
+I only needed one full run. It scored 20/20 and every category matched, and that run is the one saved in `eval-run.txt`. After that I re-graded pkg-17 by itself with `--only` (1/1) so I could read its per-check results for the next section. That partial run doesn't change `eval-run.txt`.
 
 **Package analysis**
 
-[Pick one scored package (`pkg-01` through `pkg-20` — the four `calib-` packages are never
-scored). Name it by id, say what your rubric decided and what the gold label said, and
-explain why your rubric read it that way.]
+I picked pkg-17 (silent-drift, vuejs/core#14893). My rubric said reject and the gold label is reject, so we agree. The check that failed was "Plan delivered and claims match". Its evidence line says: "Plan deliverable #2 (docs page update) is absent from the diff; description claims 'Implements the plan on #14893 in full' and 'the reactivity-core documentation now documents the limitation'". The plan promised two things, a dev warning and a docs update. The diff only has the warning and its tests, but the description says the docs were updated too, and nothing says the docs were skipped. "Diff within plan" passed because both changed files are in the plan, so that check alone would have missed it. That's why I made one check compare the description to the diff instead of only comparing files to the plan.
 
 **Check rationale**
 
-[Quote one check from the `rubric.md` you uploaded to `tools/pr-precheck/`, exactly as it reads now.
-Then say why it reads that way — what you revised to get there, or what you rejected in
-favour of it.]
+The check I picked is "Plan delivered and claims match". Its pass condition reads: "Every deliverable the plan promises is in the diff, or the plan's deviation note or the description plainly says it was deferred or changed and why. Every claim the description makes about the change is visible in the diff. A promised piece missing with no disclosure, or a description claiming something the diff does not contain, fails. An honestly disclosed deferral passes." I wrote it this way because drift can go two ways: extra work, or missing work with a description that sounds like everything got done. I kept the last sentence about honest deferrals because the assignment says a PR that admits what it left out shouldn't be punished. I also kept it separate from "Diff within plan" so extra hunks and missing promised work can't hide each other.
 
 **Trade-offs**
 
-[Every check gives something up. Any one of these is a complete answer: a package whose
-result it changes, a canary you re-ran with `--only`, a case you accept it will miss, or a
-stated reason nothing changed elsewhere. "Nothing changed, and here is how I know" earns
-the point in full when the reason follows.]
+I didn't change anything after my first full run, so I didn't loosen a check and didn't need canaries. The only extra run was the pkg-17 re-grade to read its results. One case I think my rubric could miss: a hunk inside a file the plan names that does something unrelated to the plan's purpose. "Diff within plan" asks if each file and hunk is covered by the plan, and a model could count that kind of hunk as covered because the file is named. I didn't test for it.
 
 ---
 
